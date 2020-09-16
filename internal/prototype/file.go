@@ -124,7 +124,7 @@ func nameInContext(ctx protoreflect.FileDescriptor, msg protoreflect.MessageDesc
 // is returned. If enum is defined in a file other that ctx, the Enum name of
 // enum prefix with the import alias for file that defines enum is returned.
 func enumNameInContext(ctx protoreflect.FileDescriptor, enum protoreflect.EnumDescriptor) string {
-	if ctx.Package() != enum.ParentFile().FullName() {
+	if ctx.Path() != enum.ParentFile().Path() {
 		alias := importAlias(enum.ParentFile())
 		return alias + "." + string(enum.Name())
 	}
