@@ -407,8 +407,7 @@ func genToObject(gen *protogen.Plugin, file *protogen.File, p *Printer, msg *pro
 			if field.Desc.IsMap() {
 				op = fmt.Sprintf("msg.%[1]s()?.toObject(includeInstance ?? false) ?? []", getter)
 			} else if field.Desc.IsList() && field.Desc.Kind() == protoreflect.MessageKind {
-				// TODO: This should be wrong!
-				op = fmt.Sprintf("msg.%s()", getter)
+				op = fmt.Sprintf("jspb.Message.toObjectList(msg.%s(), %s.toObject, includeInstance)", getter, prototype.Ctor(field.Desc))
 			} else if field.Desc.IsList() && field.Desc.Kind() != protoreflect.MessageKind {
 				op = fmt.Sprintf("msg.%s()", getter)
 			} else if field.Desc.Kind() == protoreflect.MessageKind {
