@@ -8,6 +8,9 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
+// WellKnownPath is the import prefix that is used for well known types.
+var WellKnownPath = "google-protobuf/google/protobuf"
+
 // Import is a typescript import.
 type Import struct {
 	// The Typescript import path.
@@ -72,8 +75,10 @@ func Path(desc protoreflect.FileDescriptor) string {
 // 	"./mycom/protobuf/hello_pb"
 //
 func importPath(desc protoreflect.FileDescriptor, imp protoreflect.FileImport) string {
-	if imp.Package() == "google.protobuf" {
-		return "google-protobuf/" + strings.TrimSuffix(imp.Path(), ".proto") + "_pb"
+	if imp.Package() == "google.protobuf" && desc.Package() != "google.protobuf" {
+		fileName := filepath.Base(imp.Path())
+		fileNamePb := strings.TrimSuffix(fileName, ".proto") + "_pb"
+		return WellKnownPath + "/" + fileNamePb
 	}
 	base := path.Dir(desc.Path())
 	relpath, err := filepath.Rel(base, imp.Path())

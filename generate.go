@@ -10,7 +10,11 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
-func generateFile(gen *protogen.Plugin, file *protogen.File) *protogen.GeneratedFile {
+func generateFile(gen *protogen.Plugin, file *protogen.File, params parameter) *protogen.GeneratedFile {
+	if params.WellKnownPath != "" {
+		prototype.WellKnownPath = params.WellKnownPath
+	}
+
 	g := gen.NewGeneratedFile(prototype.Path(file.Desc), file.GoImportPath)
 	p := newPrinter(g)
 
