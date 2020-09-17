@@ -139,7 +139,7 @@ func genMessage(gen *protogen.Plugin, file *protogen.File, p *Printer, msg *prot
 	p.P("}")
 
 	// Generate toObject method
-	p.P("toObject(includeInstance?: boolean) {")
+	p.P("toObject(includeInstance?: boolean): ", msg.Desc.Name(), ".AsObject {")
 	p.Indented(func() {
 		p.P("return ", msg.Desc.Name(), ".toObject(includeInstance ?? false, this);")
 	})
@@ -152,13 +152,9 @@ func genMessage(gen *protogen.Plugin, file *protogen.File, p *Printer, msg *prot
 
 	p.Outdent()
 	p.P("}") // class end
+	p.P()
 
-	// For messages that contain nested enum or message definitions,
-	// generate a namespace containing these definitions.
-	if len(msg.Messages) > 0 || len(msg.Enums) > 0 {
-		p.P()
-		genMessageNamespace(gen, file, p, msg)
-	}
+	genMessageNamespace(gen, file, p, msg)
 }
 
 func genMessageNamespace(gen *protogen.Plugin, file *protogen.File, p *Printer, msg *protogen.Message) {
@@ -169,6 +165,39 @@ func genMessageNamespace(gen *protogen.Plugin, file *protogen.File, p *Printer, 
 	p.P("export namespace ", msg.Desc.Name(), "{")
 	p.P()
 	p.Indented(func() {
+		// Generate AsObject tyoe
+		p.P("export type AsObject = {")
+		p.Indented(func() {
+			for i, field := range msg.Fields {
+				var fieldType string
+				var optional bool
+				if field.Desc.IsMap() {
+					fieldType = "Array<[" + prototype.Type(field.Desc.MapKey()) + "," + prototype.Type(field.Desc.MapValue()) + "]>"
+				} else if field.Desc.IsList() && field.Desc.Kind() == protoreflect.MessageKind {
+					fieldType = "Array<" + prototype.Type(field.Desc) + ".AsObject>"
+				} else if field.Desc.IsList() {
+					fieldType = "Array<" + prototype.Type(field.Desc) + ">"
+				} else if field.Desc.Kind() == protoreflect.MessageKind {
+					fieldType = prototype.Type(field.Desc) + ".AsObject"
+					optional = true
+				} else {
+					fieldType = prototype.Type(field.Desc)
+				}
+				suffix := ","
+				if i == len(msg.Fields)-1 {
+					suffix = ""
+				}
+				optFlag := ""
+				if optional {
+					optFlag = "?"
+				}
+				p.P(prototype.NormalizedFieldName(field.Desc.JSONName()), optFlag, ": ", fieldType, suffix)
+			}
+
+		})
+		p.P("}")
+		p.P()
+
 		// Generate nested enums.
 		for _, enum := range msg.Enums {
 			genEnum(gen, file, p, enum)
@@ -390,7 +419,7 @@ func genSerializeToWriterCase(p *Printer, field *protogen.Field) {
 
 // genToObject generates the static toObject method for msg.
 func genToObject(gen *protogen.Plugin, file *protogen.File, p *Printer, msg *protogen.Message) {
-	p.P("static toObject(includeInstance: boolean, msg: ", msg.Desc.Name(), ") {")
+	p.P("static toObject(includeInstance: boolean, msg: ", msg.Desc.Name(), "): ", msg.Desc.Name(), ".AsObject {")
 	p.Indented(func() {
 		p.P("return {")
 		for i, field := range msg.Fields {
