@@ -112,10 +112,10 @@ func importAlias(desc protoreflect.FileDescriptor) string {
 func nameInContext(ctx protoreflect.FileDescriptor, msg protoreflect.MessageDescriptor) string {
 	if ctx.Path() != msg.ParentFile().Path() {
 		alias := importAlias(msg.ParentFile())
-		return alias + "." + string(msg.Name())
+		return alias + "." + trimPackagePrefix(msg)
 	}
-	// If two files are in the same file, do not prefix
-	return string(msg.Name())
+	// If msg is defined in ctx, do not prefix with import alias.
+	return trimPackagePrefix(msg)
 }
 
 // enumInContext returns the Enum name for enum in context ctx.
@@ -126,8 +126,19 @@ func nameInContext(ctx protoreflect.FileDescriptor, msg protoreflect.MessageDesc
 func enumNameInContext(ctx protoreflect.FileDescriptor, enum protoreflect.EnumDescriptor) string {
 	if ctx.Path() != enum.ParentFile().Path() {
 		alias := importAlias(enum.ParentFile())
-		return alias + "." + string(enum.Name())
+		return alias + "." + trimPackagePrefix(enum)
 	}
-	// If two files are in the same package, do not prefix
-	return string(enum.Name())
+	// If enum is defined in ctx, do not prefix with import alias.
+	return trimPackagePrefix(enum)
+}
+
+// trimPackagePrefix returns the full name for desc with the package prefix
+// trimmed.
+//
+// E.g. for desc with FullName "my.awesome.package.MyMessage.MyNestedMessage" it
+// returns "MyMessage.MyNestedMessage".
+func trimPackagePrefix(desc protoreflect.Descriptor) string {
+	name := string(desc.FullName())
+	pkg := string(desc.ParentFile().Package())
+	return strings.TrimPrefix(name, pkg+".")
 }

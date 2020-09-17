@@ -152,6 +152,36 @@ func genMessage(gen *protogen.Plugin, file *protogen.File, p *Printer, msg *prot
 
 	p.Outdent()
 	p.P("}") // class end
+
+	// For messages that contain nested enum or message definitions,
+	// generate a namespace containing these definitions.
+	if len(msg.Messages) > 0 || len(msg.Enums) > 0 {
+		p.P()
+		genMessageNamespace(gen, file, p, msg)
+	}
+}
+
+func genMessageNamespace(gen *protogen.Plugin, file *protogen.File, p *Printer, msg *protogen.Message) {
+	p.P("/**")
+	p.P(" * Namespace for the ", msg.Desc.Name(), ".")
+	p.P(" * Contains nested message and enum declarations.")
+	p.P(" */")
+	p.P("export namespace ", msg.Desc.Name(), "{")
+	p.P()
+	p.Indented(func() {
+		// Generate nested enums.
+		for _, enum := range msg.Enums {
+			genEnum(gen, file, p, enum)
+			p.P()
+		}
+
+		// Generate nested messages.
+		for _, nested := range msg.Messages {
+			genMessage(gen, file, p, nested)
+			p.P()
+		}
+	})
+	p.P("}") // namespace end
 }
 
 func genDeserializeBinaryFromReader(gen *protogen.Plugin, file *protogen.File, p *Printer, msg *protogen.Message) {
