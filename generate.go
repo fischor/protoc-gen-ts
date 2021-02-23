@@ -226,6 +226,7 @@ func genMessage(gen *protogen.Plugin, file *protogen.File, p *Printer, msg *prot
 	}
 	p.P("export class ", msg.Desc.Name(), " extends jspb.Message {")
 	p.P()
+	p.Indent()
 
 	// Generate statuc deserializeBinary method.
 	p.P("static deserializeBinary(bytes: Uint8Array): ", msg.Desc.Name(), " {")
