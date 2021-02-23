@@ -135,7 +135,7 @@ func genExtension(gen *protogen.Plugin, file *protogen.File, p *Printer, extensi
 	// 	    isRepeated: number);
 	// 	}
 	extensionFieldInfo := fmt.Sprint("ExtensionFieldInfo_", extension.Extendee.GoIdent.GoName, "_", extension.GoName)
-	p.P("const ", extensionFieldInfo, " = new jspb.ExtensionFieldInfo<", prototype.Type(extension.Desc), ">(")
+	p.P("const ", extensionFieldInfo, " = new jspb.ExtensionFieldInfo(")
 	p.Indent()
 	p.P(extension.Desc.Number(), ",")
 	p.P("{", extension.Desc.JSONName(), ": 0},")
@@ -174,7 +174,7 @@ func genExtension(gen *protogen.Plugin, file *protogen.File, p *Printer, extensi
 	//     opt_isPacked: boolean);
 	// }
 	optionName := prototype.NameInContext(extension.Desc.ParentFile(), extension.Desc.ContainingMessage())
-	p.P(optionName, ".extensionsBinary[", extension.Desc.Number(), "] = new jspb.ExtensionFieldBinaryInfo<", prototype.Type(extension.Desc), ">(")
+	p.P(optionName, ".extensionsBinary[", extension.Desc.Number(), "] = new jspb.ExtensionFieldBinaryInfo(")
 	p.Indent()
 	p.P(extensionFieldInfo, ",")
 	p.P("jspb.BinaryReader.prototype.", prototype.BinaryReaderFunc(extension.Desc), ",")
