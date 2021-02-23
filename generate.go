@@ -197,7 +197,7 @@ func genExtension(gen *protogen.Plugin, file *protogen.File, p *Printer, extensi
 	p.P()
 
 	// Add the extension to the status [File|Message|Method]Option map.
-	p.P(optionName, ".extension[", extension.Desc.Number(), "] =", extensionFieldInfo, ";")
+	p.P(optionName, ".extensions[", extension.Desc.Number(), "] =", extensionFieldInfo, ";")
 }
 
 func genEnum(gen *protogen.Plugin, file *protogen.File, p *Printer, enum *protogen.Enum) {
