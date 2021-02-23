@@ -143,6 +143,7 @@ func genExtension(gen *protogen.Plugin, file *protogen.File, p *Printer, extensi
 		// For messages, there the ctor is the message itself, the
 		// toObjectFn is it toObject funtion.
 		p.P(prototype.Type(extension.Desc), ",")
+		p.P("// @ts-ignore")
 		p.P(prototype.Type(extension.Desc), ".toObject,")
 	} else {
 		// For scalar, there is no ctor and no toObjectFn, use null
@@ -181,6 +182,7 @@ func genExtension(gen *protogen.Plugin, file *protogen.File, p *Printer, extensi
 	p.P("jspb.BinaryWriter.prototype.", prototype.BinaryWriterFunc(extension.Desc), ",")
 	// opt_binaryMessageSerializeFn and opt_binaryMessageDeserializeFn
 	if extension.Desc.Kind() == protoreflect.MessageKind {
+		p.P("// @ts-ignore")
 		p.P(prototype.Type(extension.Desc), ".serializeBinaryToWriter,")
 		p.P(prototype.Type(extension.Desc), ".deserializeBinaryFromReader,")
 	} else {
