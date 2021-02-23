@@ -109,6 +109,10 @@ func importAlias(desc protoreflect.FileDescriptor) string {
 	return alias
 }
 
+func NameInContext(ctx protoreflect.FileDescriptor, msg protoreflect.MessageDescriptor) string {
+	return nameInContext(ctx, msg)
+}
+
 // nameInContext returns the Message name for msg in context ctx.
 //
 // If msg is defined in the file described by ctx, the short Message name of msg

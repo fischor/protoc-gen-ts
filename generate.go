@@ -51,11 +51,16 @@ func generateFile(gen *protogen.Plugin, file *protogen.File, params parameter) *
 		p.P()
 	}
 
+	for _, ext := range file.Extensions {
+		genExtension(gen, file, p, ext)
+		p.P()
+	}
+
 	return g
 }
 
 func genImports(gen *protogen.Plugin, file *protogen.File, g *Printer) {
-	if len(file.Messages) > 0 {
+	if len(file.Messages) > 0 || len(file.Extensions) > 0 {
 		g.P("import jspb from \"google-protobuf\";")
 
 	}
@@ -68,6 +73,131 @@ func genImports(gen *protogen.Plugin, file *protogen.File, g *Printer) {
 	for _, imp := range imps {
 		g.P("import * as ", imp.Alias, " from \"", imp.Path, "\";")
 	}
+}
+
+// extend google.protobuf.MessageOptions {
+//   string resource_name = 8872138;
+//   string resource_type = 8872139;
+// }
+//
+// export class ExtensionFieldInfo<T> {
+//   fieldIndex: number;
+//   fieldName: number;
+//   ctor: typeof Message;
+//   toObjectFn: Message.StaticToObject;
+//   isRepeated: number;
+//   constructor(
+//     fieldIndex: number,
+//     fieldName: {[key: string]: number},
+//     ctor: typeof Message,
+//     toObjectFn: Message.StaticToObject,
+//     isRepeated: number);
+//   isMessageType(): boolean;
+// }
+//
+//
+//
+//
+// /**
+//  * A tuple of {field number, class constructor} for the extension
+//  * field named `http`.
+//  * @type {!jspb.ExtensionFieldInfo<!proto.google.api.HttpRule>}
+//  */
+// proto.google.api.http = new jspb.ExtensionFieldInfo(
+//     72295728,
+//     {http: 0},
+//     google_api_http_pb.HttpRule,
+//      /** @type {?function((boolean|undefined),!jspb.Message=): !Object} */ (
+//          google_api_http_pb.HttpRule.toObject),
+//     0);
+//
+// google_protobuf_descriptor_pb.MethodOptions.extensionsBinary[72295728] = new jspb.ExtensionFieldBinaryInfo(
+//     proto.google.api.http,
+//     jspb.BinaryReader.prototype.readMessage,
+//     jspb.BinaryWriter.prototype.writeMessage,
+//     google_api_http_pb.HttpRule.serializeBinaryToWriter,
+//     google_api_http_pb.HttpRule.deserializeBinaryFromReader,
+//     false);
+// // This registers the extension field with the extended class, so that
+// // toObject() will function correctly.
+// google_protobuf_descriptor_pb.MethodOptions.extensions[72295728] = proto.google.api.http;
+func genExtension(gen *protogen.Plugin, file *protogen.File, p *Printer, extension *protogen.Extension) {
+	// Note that map fields are not allowed to be extensions.
+
+	// Generate the jspb.ExtensionsFieldInfo for the extensions.
+	//
+	// 	export class ExtensionFieldInfo<T> {
+	// 	  constructor(
+	// 	    fieldIndex: number,
+	// 	    fieldName: {[key: string]: number},
+	// 	    ctor: typeof Message,
+	// 	    toObjectFn: Message.StaticToObject,
+	// 	    isRepeated: number);
+	// 	}
+	extensionFieldInfo := fmt.Sprint("ExtensionFieldInfo_", extension.Extendee.GoIdent.GoName, "_", extension.GoName)
+	p.P("const ", extensionFieldInfo, " = new jspb.ExtensionFieldInfo<", prototype.Type(extension.Desc), ">(")
+	p.Indent()
+	p.P(extension.Desc.Number(), ",")
+	p.P("{", extension.Desc.JSONName(), ": 0},")
+	if extension.Desc.Kind() == protoreflect.MessageKind {
+		// For messages, there the ctor is the message itself, the
+		// toObjectFn is it toObject funtion.
+		p.P(prototype.Type(extension.Desc), ",")
+		p.P(prototype.Type(extension.Desc), ".toObject,")
+	} else {
+		// For scalar, there is no ctor and no toObjectFn, use null
+		// instead.
+		p.P("null,")
+		p.P("null,")
+	}
+	if extension.Desc.Cardinality() == protoreflect.Repeated {
+		// For repeated fields, the isRepeated parameter is 1.
+		p.P("1")
+	} else {
+		// For non-repeated fields, the isRepeated parameter is 0.
+		p.P("0")
+	}
+	p.Outdent()
+	p.P(");")
+	p.P()
+
+	// Add the extension to the status [File|Message|Method]Option map.
+	//
+	//
+	// export class ExtensionFieldBinaryInfo<T> {
+	//   constructor(
+	//     fieldInfo: ExtensionFieldInfo<T>,
+	//     binaryReaderFn: BinaryRead,
+	//     binaryWriterFn: BinaryWrite,
+	//     opt_binaryMessageSerializeFn: (msg: Message, writer: BinaryWriter) => void,
+	//     opt_binaryMessageDeserializeFn: (msg: Message, reader: BinaryReader) => Message,
+	//     opt_isPacked: boolean);
+	// }
+	optionName := prototype.NameInContext(extension.Desc.ParentFile(), extension.Desc.ContainingMessage())
+	p.P(optionName, ".extensionsBinary[", extension.Desc.Number(), "] = new jspb.ExtensionFieldBinaryInfo<", prototype.Type(extension.Desc), ">(")
+	p.Indent()
+	p.P(extensionFieldInfo, ",")
+	p.P("jspb.BinaryReader.prototype.", prototype.BinaryReaderFunc(extension.Desc), ",")
+	p.P("jspb.BinaryWriter.prototype.", prototype.BinaryWriterFunc(extension.Desc), ",")
+	// opt_binaryMessageSerializeFn and opt_binaryMessageDeserializeFn
+	if extension.Desc.Kind() == protoreflect.MessageKind {
+		p.P(prototype.Type(extension.Desc), ".serializeBinaryToWriter,")
+		p.P(prototype.Type(extension.Desc), ".deserializeBinaryFromReader,")
+	} else {
+		p.P("undefined,")
+		p.P("undefined,")
+	}
+	// opt_isPacked
+	if extension.Desc.IsPacked() {
+		p.P("true);")
+	} else {
+		p.P("false);")
+	}
+	p.Outdent()
+	p.P()
+
+	// Add the extension to the status [File|Message|Method]Option map.
+	p.P(optionName, ".extension[", extension.Desc.Number(), "] =", extensionFieldInfo, ";")
 }
 
 func genEnum(gen *protogen.Plugin, file *protogen.File, p *Printer, enum *protogen.Enum) {
