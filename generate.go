@@ -135,7 +135,7 @@ func genExtension(gen *protogen.Plugin, file *protogen.File, p *Printer, extensi
 	// 	    isRepeated: number);
 	// 	}
 	extensionFieldInfo := fmt.Sprint("ExtensionFieldInfo_", extension.Extendee.GoIdent.GoName, "_", extension.GoName)
-	p.P("const ", extensionFieldInfo, " = new jspb.ExtensionFieldInfo(")
+	p.P("export const ", extensionFieldInfo, " = new jspb.ExtensionFieldInfo(")
 	p.Indent()
 	p.P(extension.Desc.Number(), ",")
 	p.P("{", extension.Desc.JSONName(), ": 0},")
